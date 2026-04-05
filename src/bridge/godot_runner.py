@@ -29,16 +29,28 @@ class GodotRunner:
         self.output_video = self.temp_path / "final_render.avi" # Godot natively exports to AVI unless further configured
         self.output_video_mp4 = self.temp_path / "final_render.mp4"
 
+        # Create .debug folder in project root for saving contracts
+        self.debug_dir = Path(__file__).parent.parent.parent / ".debug"
+        self.debug_dir.mkdir(exist_ok=True)
+
     def setup_workspace(self) -> None:
         """Copies the base project to a temporary directory."""
         shutil.copytree(self.base_path, self.temp_path, dirs_exist_ok=True)
         print(f"GodotRunner: Workspace created at {self.temp_path}")
 
     def inject_contract(self, contract_data: Dict[str, Any]) -> None:
-        """Writes the JSON data to contract.json in the temp workspace."""
+        """Writes the JSON data to contract.json in the temp workspace and .debug folder."""
         with open(self.contract_file, "w") as f:
             json.dump(contract_data, f, indent=4)
         print(f"GodotRunner: Contract injected into {self.contract_file}")
+
+        # Save contract to .debug folder for debugging
+        import time
+        timestamp = int(time.time())
+        debug_contract_path = self.debug_dir / f"contract_{timestamp}.json"
+        with open(debug_contract_path, "w") as f:
+            json.dump(contract_data, f, indent=4)
+        print(f"GodotRunner: Contract saved to debug folder: {debug_contract_path}")
 
     def run_scene(self, dump_frame: bool = True, duration: float = 2.0) -> bool:
         """Runs Godot in headless mode.

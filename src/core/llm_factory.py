@@ -62,7 +62,7 @@ def get_vision_llm(temperature: float = 0.2) -> BaseChatModel:
         # DashScope deprecated Qwen2-VL, current stable vision model is qwen-vl-max or qwen-vl-plus
         return ChatTongyi(
             dashscope_api_key=os.environ.get("DASHSCOPE_API_KEY"),
-            model=os.environ.get("QWEN_VISION_MODEL", "qwen-vl-max"),
+            model=os.environ.get("QWEN_VISION_MODEL", "qwen3.5-omni-plus"),
             temperature=temperature
         )
     else:
