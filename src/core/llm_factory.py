@@ -50,5 +50,4 @@ def get_vision_llm(temperature: float = 0.2) -> BaseChatModel:
             temperature=temperature
         )
     else:
-        # Fallback to standard if specific vision not set, though it might fail if provider doesn't support images
-        return get_llm(temperature)
+        raise ValueError(f"LLM Provider '{llm_provider}' does not support vision capabilities for get_vision_llm(). Please use 'openai' or 'google'.")

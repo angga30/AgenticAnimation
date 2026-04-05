@@ -4,7 +4,14 @@ from src.bridge.godot_runner import GodotRunner
 
 class TestBasicImports(unittest.TestCase):
     def test_imports(self):
-        self.assertTrue(True)
+        import src.main
+        self.assertIsNotNone(src.main.build_production_graph)
+
+        import src.agents
+        self.assertIsNotNone(src.agents.director_node)
+
+        import src.core.llm_factory
+        self.assertIsNotNone(src.core.llm_factory.get_llm)
 
     def test_state_creation(self):
         state = ProductionState(user_prompt="Hello world", retake_count=0)

@@ -21,7 +21,8 @@ def cinematographer_node(state: ProductionState) -> ProductionState:
     current_shot = state["shots"][state.get("current_shot_index", 0)]
     treatment = state.get("treatment", {})
     performance = state.get("performance", {})
-    actor_pos = performance.get("path_coords", [[0,0,0]])[0] if performance else [0,0,0]
+    path_coords = performance.get("path_coords") or [] if performance else []
+    actor_pos = path_coords[0] if path_coords else [0,0,0]
 
     audit_feedback = ""
     if state.get("audit_result") and state["audit_result"]["status"] == "RETAKE":

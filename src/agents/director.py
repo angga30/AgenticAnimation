@@ -47,9 +47,14 @@ Constraints:
 
     # Update state
     state["treatment"] = result.treatment.model_dump()
-    state["shots"] = [shot.model_dump() for shot in result.shots]
-    if "current_shot_index" not in state:
-        state["current_shot_index"] = 0
+    if not result.shots:
+        state["shots"] = []
+        state["current_shot_index"] = None
+        print(f"🎬 Director: Created 0 shots (fallback). Mood: {state['treatment']['mood']}")
+    else:
+        state["shots"] = [shot.model_dump() for shot in result.shots]
+        if "current_shot_index" not in state or state["current_shot_index"] is None:
+            state["current_shot_index"] = 0
+        print(f"🎬 Director: Created {len(state['shots'])} shots. Mood: {state['treatment']['mood']}")
 
-    print(f"🎬 Director: Created {len(state['shots'])} shots. Mood: {state['treatment']['mood']}")
     return state

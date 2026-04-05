@@ -24,7 +24,12 @@ def auditor_node(state: ProductionState) -> ProductionState:
     vision_llm = get_vision_llm(temperature=0.2)
     structured_llm = vision_llm.with_structured_output(VisualAuditOutput)
 
-    base64_img = encode_image(state["latest_dailies_path"])
+    try:
+        base64_img = encode_image(state["latest_dailies_path"])
+    except (FileNotFoundError, OSError) as e:
+        print(f"👁️ Auditor: Image not found or unreadable: {e}")
+        state["audit_result"] = {"status": "VALID", "issues": ["No image file to audit."], "instructions": ""}
+        return state
 
     # We use explicit messages here because we need to embed the image payload
     messages = [

@@ -3,6 +3,7 @@ import sys
 import json
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -12,19 +13,23 @@ class GodotRunner:
     injecting the contract.json, running the Godot process headlessly, and capturing outputs.
     """
 
-    def __init__(self, base_path: str = "godot_base", temp_path: str = "temp_workspace", debug: bool = False):
-        self.base_path = Path(base_path)
-        self.temp_path = Path(temp_path)
+    def __init__(self, base_path: Optional[str] = None, debug: bool = False):
+        # Resolve base_path relative to module path if not explicitly provided
+        if base_path:
+            self.base_path = Path(base_path).resolve()
+        else:
+            # Fallback to godot_base in project root relative to this module
+            self.base_path = (Path(__file__).parent.parent.parent / "godot_base").resolve()
+
+        self.temp_dir_obj = tempfile.TemporaryDirectory()
+        self.temp_path = Path(self.temp_dir_obj.name)
         self.debug = debug
         self.contract_file = self.temp_path / "contract.json"
         self.output_image = self.temp_path / "dailies.png"
 
     def setup_workspace(self) -> None:
         """Copies the base project to a temporary directory."""
-        if self.temp_path.exists():
-            shutil.rmtree(self.temp_path)
-
-        shutil.copytree(self.base_path, self.temp_path)
+        shutil.copytree(self.base_path, self.temp_path, dirs_exist_ok=True)
         print(f"GodotRunner: Workspace created at {self.temp_path}")
 
     def inject_contract(self, contract_data: Dict[str, Any]) -> None:
@@ -47,7 +52,7 @@ class GodotRunner:
 
         print(f"GodotRunner: Executing {' '.join(cmd)}")
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             if self.debug:
                 print("--- Godot Output ---")
                 print(result.stdout)
@@ -63,6 +68,9 @@ class GodotRunner:
         except FileNotFoundError:
             print(f"GodotRunner Error: Godot executable '{godot_exec}' not found. Please set GODOT_EXECUTABLE environment variable.")
             return False
+        except subprocess.TimeoutExpired:
+            print(f"GodotRunner Error: Execution of '{godot_exec}' timed out after 300 seconds.")
+            return False
 
     def retrieve_dailies(self, dest_path: str = "latest_dailies.png") -> Optional[str]:
         """Copies the rendered screenshot back to the main directory."""
@@ -76,21 +84,23 @@ class GodotRunner:
 
     def cleanup(self) -> None:
         """Removes the temp workspace if not in debug mode."""
-        if not self.debug and self.temp_path.exists():
-            shutil.rmtree(self.temp_path)
+        if not self.debug:
+            self.temp_dir_obj.cleanup()
             print(f"GodotRunner: Workspace {self.temp_path} cleaned up.")
         elif self.debug:
             print(f"GodotRunner: Debug mode active. Workspace retained at {self.temp_path}")
 
     def execute_pipeline(self, contract_data: Dict[str, Any], output_path: str = "latest_dailies.png") -> Optional[str]:
         """Full execution lifecycle."""
-        self.setup_workspace()
-        self.inject_contract(contract_data)
-        success = self.run_scene()
         result_path = None
-        if success:
-            result_path = self.retrieve_dailies(output_path)
-        self.cleanup()
+        try:
+            self.setup_workspace()
+            self.inject_contract(contract_data)
+            success = self.run_scene()
+            if success:
+                result_path = self.retrieve_dailies(output_path)
+        finally:
+            self.cleanup()
         return result_path
 
 if __name__ == "__main__":

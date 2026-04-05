@@ -25,22 +25,35 @@ def render_bridge_node(state: ProductionState) -> ProductionState:
 
     # We set debug=True if we want to see engine logs, or False for clean runs
     runner = GodotRunner(debug=True)
-    dailies_path = runner.execute_pipeline(contract_data, output_path="dailies.png")
+
+    import uuid
+    unique_filename = f"dailies_shot_{state.get('current_shot_index', 0)}_retake_{state.get('retake_count', 0)}_{uuid.uuid4().hex[:6]}.png"
+
+    dailies_path = runner.execute_pipeline(contract_data, output_path=unique_filename)
 
     if dailies_path:
         state["latest_dailies_path"] = dailies_path
     else:
         print("⚠️ Render Bridge: Failed to generate dailies!")
+        state["latest_dailies_path"] = None
 
     return state
 
 def should_retake(state: ProductionState) -> str:
-    """Router logic to handle self-healing loop."""
-    audit_status = state.get("audit_result", {}).get("status", "VALID")
+    """Router logic to handle self-healing loop with bounded retakes."""
+    audit_status = state.get("audit_result", {}).get("status", "RETAKE") # Default fail closed
+
     if audit_status == "RETAKE":
-        print("🔄 Production: Retake requested by Auditor. Rebuilding scene...")
-        # Route back to the architect to start the physical rebuild pipeline
-        return "architect"
+        retake_count = state.get("retake_count", 0)
+
+        MAX_RETAKES = 3
+        if retake_count < MAX_RETAKES:
+            print(f"🔄 Production: Retake requested by Auditor ({retake_count+1}/{MAX_RETAKES}). Rebuilding scene...")
+            return "architect"
+        else:
+            print("⚠️ Production: Max retakes reached. Failing forward.")
+            return "next_shot_check"
+
     return "next_shot_check"
 
 def next_shot_node(state: ProductionState) -> ProductionState:

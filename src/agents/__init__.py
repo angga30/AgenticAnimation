@@ -6,10 +6,10 @@ from .gaffer import gaffer_node
 from .auditor import auditor_node
 
 __all__ = [
-    "director_node",
-    "architect_node",
     "animator_node",
+    "architect_node",
+    "auditor_node",
     "cinematographer_node",
-    "gaffer_node",
-    "auditor_node"
+    "director_node",
+    "gaffer_node"
 ]

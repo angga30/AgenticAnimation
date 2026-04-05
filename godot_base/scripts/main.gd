@@ -35,6 +35,11 @@ func _ready() -> void:
 	print("Godot: Render sequence finished.")
 	get_tree().quit(0)
 
+func safe_vector3(array_data: Variant, default_val: Vector3) -> Vector3:
+	if typeof(array_data) == TYPE_ARRAY and array_data.size() >= 3:
+		return Vector3(float(array_data[0]), float(array_data[1]), float(array_data[2]))
+	return default_val
+
 func _build_set(set_data: Dictionary) -> void:
 	if set_data.is_empty(): return
 	var parent_union = CSGCombiner3D.new()
@@ -48,14 +53,12 @@ func _build_set(set_data: Dictionary) -> void:
 		var node: CSGShape3D
 		if type == "csg_box":
 			node = CSGBox3D.new()
-			var size = struct_data.get("size", [1, 1, 1])
-			node.size = Vector3(size[0], size[1], size[2])
+			node.size = safe_vector3(struct_data.get("size"), Vector3(1, 1, 1))
 		# Add more types if needed
 		else:
 			continue
 
-		var pos = struct_data.get("position", [0, 0, 0])
-		node.position = Vector3(pos[0], pos[1], pos[2])
+		node.position = safe_vector3(struct_data.get("position"), Vector3.ZERO)
 
 		if op == "subtraction":
 			node.operation = CSGShape3D.OPERATION_SUBTRACTION
@@ -116,13 +119,10 @@ func _build_camera(cam_data: Dictionary) -> void:
 	camera.current = true
 	add_child(camera)
 
-	var pos = cam_data.get("position", [0, 2, 5])
-	camera.position = Vector3(pos[0], pos[1], pos[2])
-
+	camera.position = safe_vector3(cam_data.get("position"), Vector3(0, 2, 5))
 	camera.fov = cam_data.get("fov", 75.0)
 
-	var target = cam_data.get("target", [0, 1, 0])
-	var target_vec = Vector3(target[0], target[1], target[2])
+	var target_vec = safe_vector3(cam_data.get("target"), Vector3(0, 1, 0))
 	if camera.position != target_vec:
 		camera.look_at(target_vec)
 
@@ -130,13 +130,29 @@ func _build_camera(cam_data: Dictionary) -> void:
 	if not movement.is_empty():
 		var type = movement.get("type", "")
 		var tween = get_tree().create_tween()
+		var speed = movement.get("speed", 2.0)
 		if type == "dolly":
 			var forward = -camera.global_transform.basis.z
 			var dest = camera.position + forward * 2.0
-			tween.tween_property(camera, "position", dest, movement.get("speed", 2.0))
+			tween.tween_property(camera, "position", dest, speed)
 		elif type == "pan":
 			var target_rot = camera.rotation + Vector3(0, deg_to_rad(30), 0)
-			tween.tween_property(camera, "rotation", target_rot, movement.get("speed", 2.0))
+			tween.tween_property(camera, "rotation", target_rot, speed)
+		elif type == "orbit":
+			var angle_rad = deg_to_rad(movement.get("angle_deg", 30.0))
+			var radius = movement.get("radius", 2.0)
+
+			var cam_offset = camera.position - target_vec
+			var current_radius = cam_offset.length()
+			# Normalizing offset ignores Y-difference loosely, but simple orbit implementation:
+			var dest_pos = target_vec + cam_offset.rotated(Vector3.UP, angle_rad).normalized() * current_radius
+			tween.tween_property(camera, "position", dest_pos, speed)
+
+			var dummy_cam = Camera3D.new()
+			dummy_cam.position = dest_pos
+			dummy_cam.look_at_from_position(dest_pos, target_vec)
+			tween.parallel().tween_property(camera, "rotation", dummy_cam.rotation, speed)
+			dummy_cam.queue_free()
 
 func _build_performance(perf_data: Dictionary) -> void:
 	if perf_data.is_empty(): return
@@ -147,14 +163,13 @@ func _build_performance(perf_data: Dictionary) -> void:
 	# Fallback placeholder since we might not have a texture generated
 	var paths = perf_data.get("path_coords", [])
 	if paths.size() > 0:
-		var start_pos = paths[0]
-		sprite.position = Vector3(start_pos[0], start_pos[1], start_pos[2])
+		sprite.position = safe_vector3(paths[0], Vector3.ZERO)
 
 		if paths.size() > 1:
 			var tween = get_tree().create_tween()
 			for i in range(1, paths.size()):
-				var p = paths[i]
-				tween.tween_property(sprite, "position", Vector3(p[0], p[1], p[2]), 1.0)
+				var dest = safe_vector3(paths[i], Vector3.ZERO)
+				tween.tween_property(sprite, "position", dest, 1.0)
 	else:
 		sprite.position = Vector3(0, 0, 0)
 
