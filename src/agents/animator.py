@@ -8,6 +8,7 @@ class PerformanceOutput(BaseModel):
     actor_id: str
     asset_path: str = Field(description="Absolute path to the character's image asset", default="")
     animation: str = Field(description="'idle', 'walk', or 'talk'")
+    scale: List[float] = Field(description="[x, y, z] scale for the 2D billboard sprite", default=[1.0, 1.0, 1.0])
     path_coords: List[List[float]] = Field(description="List of [x, y, z] coordinates for movement")
 
 def animator_node(state: ProductionState) -> ProductionState:
@@ -22,10 +23,12 @@ def animator_node(state: ProductionState) -> ProductionState:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Role: You are the Lead Animator.
-Task: Define the 'blocking' (coordinates) and animation state for the actor.
+Task: Define the 'blocking' (coordinates) and scale for the actor.
 
 Constraint:
-Characters are 2D Billboards in a 3D world. Ensure they are positioned exactly at Y=0 (feet on the ground)."""),
+1. Characters are 2D Billboards in a 3D world. Ensure their Y position is roughly 1.0 to 1.5 depending on their height so their feet touch the ground (Y=0 is the floor plane).
+2. Set an appropriate scale (usually [1.5, 1.5, 1.5] or [2.0, 2.0, 2.0] so the actor is highly visible on camera).
+3. If movement occurs, list the start and end coordinates in `path_coords`."""),
         ("user", "Animate {actor_id} for action: {action}. Duration: {duration}s")
     ])
 

@@ -34,8 +34,9 @@ Task: Define Camera3D parameters and movement.
 
 Logic:
 1. FOV: 35 for emotional/tight shots, 75 for wide/environment shots.
-2. MOVEMENT: Use "dolly", "pan", or "orbit". Don't use static unless absolutely necessary.
-3. TARGETING: Always use 'look_at' target coordinates to keep the actor in frame.
+2. MOVEMENT: DO NOT use static. MUST USE "dolly", "pan", or "orbit" so the shot feels alive.
+3. STARTING POSITION: Place the camera at eye-level or slightly above (e.g. Y=1.5 or Y=2.0).
+4. TARGETING: Always set the 'target' array to lock onto the actor's chest/head (e.g., [x, 1.5, z]).
 
 {audit_feedback}"""),
         ("user", "Shot Action: {action} | Mood: {mood} | Actor is at: {actor_pos}. Plan the shot.")

@@ -27,12 +27,12 @@ def architect_node(state: ProductionState) -> ProductionState:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Role: You are the Production Designer (3D Set Builder).
-Task: Build a 3D set in Godot using CSG operations.
+Task: Build a 3D set in Godot using CSG operations and arrange props correctly.
 
 Rules:
-1. SCALE: 1.0 unit = 1 meter. Floor is ALWAYS at Y=0.
+1. SCALE: 1.0 unit = 1 meter. Floor is ALWAYS at Y=0. Build tables or floors explicitly if requested using "csg_box".
 2. GEOMETRY: Use "csg_box" for walls/floors. Use "union" to build, "subtraction" to create holes.
-3. SPATIAL LOGIC: Ensure there is enough space (min 3m width) for actors. Floor thickness should be at negative Y to keep top at Y=0.
+3. SPATIAL LOGIC: Ensure there is enough space (min 3m width) for actors. Avoid placing props exactly at 0,0,0 to prevent Z-fighting with actors.
 
 {audit_feedback}"""),
         ("user", "Build a set for this shot Action: {action} | Mood: {mood}")
@@ -48,18 +48,27 @@ Rules:
 
     set_data = result.model_dump()
 
-    # Inject generated assets for background and props
+    # Inject generated assets for background and props with realistic scaling and offset
     assets = state.get("generated_assets", {})
     props_list = []
 
     scenario_props = state.get("scenario", {}).get("props", [])
     for i, prop in enumerate(scenario_props):
         prop_id = prop.get("id")
+        desc = prop.get("description", "").lower()
         if prop_id and prop_id in assets:
+            # Simple heuristic scaling: if it's an apple or book, make it small
+            scale_val = 1.0
+            if any(word in desc for word in ["apple", "buku", "book", "small", "kecil", "ring", "coin"]):
+                scale_val = 0.2
+            elif any(word in desc for word in ["table", "meja", "chair", "kursi"]):
+                scale_val = 1.2
+
             props_list.append({
                 "id": prop_id,
                 "asset_path": assets[prop_id],
-                "position": [float(i * 1.5 - 1.0), 0.5, -2.0] # simple layout line
+                "position": [float(i * 1.0 - 1.5), scale_val/2.0, -2.0 - (i * 0.5)], # Spread props out in Z and X to prevent Z-fighting
+                "scale": [scale_val, scale_val, scale_val]
             })
 
     set_data["props"] = props_list

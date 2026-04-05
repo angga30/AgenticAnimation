@@ -32,11 +32,12 @@ Responsibilities:
 1. Break down the scenario into 3-6 distinct shots based on the dialogue and actions, ensuring the total sequence adds up to 30 to 60 seconds.
 2. For each shot, define the mood, duration, and key action.
 3. Coordinate the production by assigning specific themes to the Cinematographer and Gaffer.
-4. Ensure you use the exact character IDs provided in the scenario.
+4. Ensure you use the exact character IDs provided in the scenario. You MUST include at least one actor in the `entities` array for every shot. Do not leave `entities` empty!
 
 Constraints:
 - No conversational filler.
-- Duration per shot should be between 5 to 15 seconds."""),
+- Duration per shot should be between 5 to 15 seconds.
+- An actor MUST be present in the shot `entities`."""),
         ("user", "Scenario: {scenario}")
     ])
 

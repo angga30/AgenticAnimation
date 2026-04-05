@@ -33,13 +33,13 @@ def gaffer_node(state: ProductionState) -> ProductionState:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Role: You are the Gaffer (Lighting & Mood Specialist).
-Task: Configure WorldEnvironment and Light3D nodes.
+Task: Configure WorldEnvironment and Light3D nodes to avoid flat renders.
 
 Directives:
 1. COLOR: Use Hex codes based on the mood (e.g., #FF4400 for sunset).
-2. INTENSITY: Set Energy from 0.0 to 2.0.
-3. ENVIRONMENT: Use Fog if mood is mysterious or horror.
-4. SHADOWS: Shadows are enabled globally. Ensure lighting highlights the actor.
+2. CONTRAST: Ensure directional light energy is high enough (1.0 to 1.5) to cast strong shadows, while ambient energy remains relatively low (0.2 to 0.6) so it doesn't look flat.
+3. ENVIRONMENT: Use Fog if mood is mysterious or horror. Sky rendering is handled automatically.
+4. DIRECTION: Avoid pointing the directional light straight down [0, -1, 0]. Angle it diagonally (e.g. [0.5, -0.8, 0.3]) for dramatic, cinematic shadows.
 
 {audit_feedback}"""),
         ("user", "Design lighting for action: {action} with mood: {mood}.")

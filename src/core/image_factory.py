@@ -47,8 +47,7 @@ def _generate_qwen(prompt: str) -> bytes:
         raise ValueError("DASHSCOPE_API_KEY is not set.")
 
     dashscope.api_key = api_key
-    dashscope.base_http_api_url = "https://dashscope-intl.aliyuncs.com/api/v1"
-    model = os.environ.get("QWEN_IMAGE_MODEL", "qwen-image")
+    model = os.environ.get("QWEN_IMAGE_MODEL", ImageSynthesis.Models.wanx_v1)
 
     response = ImageSynthesis.call(
         model=model,

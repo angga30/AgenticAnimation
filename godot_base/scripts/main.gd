@@ -117,7 +117,10 @@ func _build_set(set_data: Dictionary) -> void:
 			if img.load(prop_path) == OK:
 				sprite.texture = ImageTexture.create_from_image(img)
 				sprite.position = safe_vector3(prop.get("position"), Vector3.ZERO)
+				sprite.scale = safe_vector3(prop.get("scale"), Vector3(1.0, 1.0, 1.0))
 				sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+				sprite.alpha_cut = BaseMaterial3D.ALPHA_CUT_DISCARD
+				sprite.alpha_scissor_threshold = 0.5
 				sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 				add_child(sprite)
 				print("Godot: Loaded prop ", sprite.name)
@@ -127,6 +130,18 @@ func _build_lighting(light_data: Dictionary) -> void:
 
 	# World Environment
 	var env = Environment.new()
+
+	# Add Procedural Sky to fix black void
+	var sky = Sky.new()
+	var sky_mat = ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.4, 0.6, 0.9)
+	sky_mat.sky_horizon_color = Color(0.8, 0.8, 0.85)
+	sky_mat.ground_bottom_color = Color(0.2, 0.2, 0.2)
+	sky_mat.ground_horizon_color = Color(0.8, 0.8, 0.85)
+	sky.sky_material = sky_mat
+	env.sky = sky
+	env.background_mode = Environment.BG_SKY
+
 	var we = WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -217,7 +232,12 @@ func _build_performance(perf_data: Dictionary) -> void:
 	if perf_data.is_empty(): return
 	var sprite = Sprite3D.new()
 	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sprite.alpha_cut = BaseMaterial3D.ALPHA_CUT_DISCARD
+	sprite.alpha_scissor_threshold = 0.5
 	sprite.name = perf_data.get("actor_id", "actor_01")
+
+	var scale_vec = safe_vector3(perf_data.get("scale"), Vector3(1.0, 1.0, 1.0))
+	sprite.scale = scale_vec
 
 	var asset_path = perf_data.get("asset_path", "")
 	if asset_path != "" and FileAccess.file_exists(asset_path):
