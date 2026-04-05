@@ -1,0 +1,10 @@
+langgraph
+langchain
+langchain-core
+langchain-openai
+langchain-google-genai
+pydantic
+python-dotenv
+pillow
+rembg
+langchain-community
