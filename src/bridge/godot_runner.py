@@ -27,6 +27,7 @@ class GodotRunner:
         self.contract_file = self.temp_path / "contract.json"
         self.output_image = self.temp_path / "dailies.png"
         self.output_video = self.temp_path / "final_render.avi" # Godot natively exports to AVI unless further configured
+        self.output_video_mp4 = self.temp_path / "final_render.mp4"
 
     def setup_workspace(self) -> None:
         """Copies the base project to a temporary directory."""
@@ -101,11 +102,46 @@ class GodotRunner:
             print("GodotRunner: No dailies found in output.")
             return None
 
-    def retrieve_video(self, dest_path: str = "latest_render.avi") -> Optional[str]:
-        """Copies the rendered video back to the main directory."""
-        if self.output_video.exists():
+    def convert_to_mp4(self) -> bool:
+        """Converts the output AVI to MP4 using FFmpeg."""
+        if not self.output_video.exists():
+            return False
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(self.output_video.absolute()),
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "22",
+            "-pix_fmt", "yuv420p",
+            str(self.output_video_mp4.absolute())
+        ]
+
+        print(f"GodotRunner: Converting to MP4 via FFmpeg...")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0 and self.output_video_mp4.exists():
+                return True
+            else:
+                print(f"GodotRunner: FFmpeg failed: {result.stderr}")
+                return False
+        except FileNotFoundError:
+            print("GodotRunner: FFmpeg not found on system. Returning raw AVI instead.")
+            return False
+
+    def retrieve_video(self, dest_path: str = "latest_render.mp4") -> Optional[str]:
+        """Copies the rendered video back to the main directory. Returns MP4 if possible, else AVI."""
+        if self.convert_to_mp4():
+            if dest_path.endswith(".avi"):
+                dest_path = dest_path.replace(".avi", ".mp4")
+            shutil.copy(self.output_video_mp4, dest_path)
+            print(f"GodotRunner: MP4 Video retrieved to {dest_path}")
+            return dest_path
+        elif self.output_video.exists():
+            if dest_path.endswith(".mp4"):
+                dest_path = dest_path.replace(".mp4", ".avi")
             shutil.copy(self.output_video, dest_path)
-            print(f"GodotRunner: Video retrieved to {dest_path}")
+            print(f"GodotRunner: AVI Video retrieved to {dest_path} (FFmpeg conversion failed/skipped)")
             return dest_path
         else:
             print("GodotRunner: No video found in output.")

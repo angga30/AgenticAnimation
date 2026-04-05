@@ -51,7 +51,7 @@ def final_video_render_node(state: ProductionState) -> ProductionState:
     }
 
     runner = GodotRunner(debug=True)
-    video_filename = f"final_shot_{state.get('current_shot_index', 0)}_{uuid.uuid4().hex[:6]}.avi"
+    video_filename = f"final_shot_{state.get('current_shot_index', 0)}_{uuid.uuid4().hex[:6]}.mp4"
 
     video_path = runner.execute_pipeline(contract_data, output_path=video_filename, mode="video")
     if video_path:

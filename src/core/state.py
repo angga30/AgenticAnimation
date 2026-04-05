@@ -39,7 +39,9 @@ class VisualAuditResult(TypedDict):
 class ScenarioData(TypedDict):
     title: str
     setting: str
+    background_desc: str
     characters: List[Dict[str, str]]
+    props: List[Dict[str, str]]
     dialogue: List[Dict[str, str]]
 
 class ProductionState(TypedDict):
@@ -48,7 +50,7 @@ class ProductionState(TypedDict):
 
     # Pre-Production Outputs
     scenario: NotRequired[ScenarioData]
-    generated_assets: NotRequired[Dict[str, str]] # map of actor_id -> filepath
+    generated_assets: NotRequired[Dict[str, str]] # map of asset_id (actor/prop/bg) -> filepath
 
     # Director Outputs
     treatment: NotRequired[Treatment]

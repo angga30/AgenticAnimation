@@ -13,7 +13,6 @@ class CSGStructure(BaseModel):
 
 class SetDesignOutput(BaseModel):
     structures: List[CSGStructure]
-    props: List[Dict[str, Any]] = Field(default_factory=list)
 
 def architect_node(state: ProductionState) -> ProductionState:
     llm = get_llm(temperature=0.2)
@@ -47,6 +46,31 @@ Rules:
         "audit_feedback": audit_feedback
     })
 
-    state["set_design"] = result.model_dump()
-    print("🏗️ Architect: Built set geometry.")
+    set_data = result.model_dump()
+
+    # Inject generated assets for background and props
+    assets = state.get("generated_assets", {})
+    props_list = []
+
+    scenario_props = state.get("scenario", {}).get("props", [])
+    for i, prop in enumerate(scenario_props):
+        prop_id = prop.get("id")
+        if prop_id and prop_id in assets:
+            props_list.append({
+                "id": prop_id,
+                "asset_path": assets[prop_id],
+                "position": [float(i * 1.5 - 1.0), 0.5, -2.0] # simple layout line
+            })
+
+    set_data["props"] = props_list
+
+    if "background_01" in assets:
+        set_data["background"] = {
+            "asset_path": assets["background_01"],
+            "position": [0, 5, -15], # far back
+            "size": [20, 10]
+        }
+
+    state["set_design"] = set_data
+    print("🏗️ Architect: Built set geometry and placed props/background.")
     return state

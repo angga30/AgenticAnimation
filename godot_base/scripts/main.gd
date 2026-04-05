@@ -86,6 +86,38 @@ func _build_set(set_data: Dictionary) -> void:
 
 		parent_union.add_child(node)
 
+	# Build Background
+	var bg = set_data.get("background", {})
+	if not bg.is_empty():
+		var bg_path = bg.get("asset_path", "")
+		if bg_path != "" and FileAccess.file_exists(bg_path):
+			var sprite = Sprite3D.new()
+			sprite.name = "Background"
+			var img = Image.new()
+			if img.load(bg_path) == OK:
+				sprite.texture = ImageTexture.create_from_image(img)
+				sprite.position = safe_vector3(bg.get("position"), Vector3(0, 5, -15))
+				sprite.pixel_size = 0.05 # make it large
+				sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+				add_child(sprite)
+				print("Godot: Loaded background from ", bg_path)
+
+	# Build Props
+	var props = set_data.get("props", [])
+	for prop in props:
+		var prop_path = prop.get("asset_path", "")
+		if prop_path != "" and FileAccess.file_exists(prop_path):
+			var sprite = Sprite3D.new()
+			sprite.name = prop.get("id", "prop")
+			var img = Image.new()
+			if img.load(prop_path) == OK:
+				sprite.texture = ImageTexture.create_from_image(img)
+				sprite.position = safe_vector3(prop.get("position"), Vector3.ZERO)
+				sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+				sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+				add_child(sprite)
+				print("Godot: Loaded prop ", sprite.name)
+
 func _build_lighting(light_data: Dictionary) -> void:
 	if light_data.is_empty(): return
 

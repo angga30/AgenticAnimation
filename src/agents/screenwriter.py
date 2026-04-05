@@ -9,6 +9,11 @@ class CharacterModel(BaseModel):
     name: str = Field(description="Character's name")
     description: str = Field(description="Visual description of the character for asset generation")
 
+class PropModel(BaseModel):
+    id: str = Field(description="Unique prop ID, e.g., prop_01")
+    name: str = Field(description="Prop's name")
+    description: str = Field(description="Visual description of the prop")
+
 class DialogueLine(BaseModel):
     character_id: str
     text: str = Field(description="What the character says")
@@ -17,7 +22,9 @@ class DialogueLine(BaseModel):
 class ScenarioOutput(BaseModel):
     title: str
     setting: str = Field(description="Where the scene takes place")
+    background_desc: str = Field(description="Visual description of the environment/background for image generation")
     characters: List[CharacterModel]
+    props: List[PropModel] = Field(description="Key objects needed in the scene")
     dialogue: List[DialogueLine]
 
 def screenwriter_node(state: ProductionState) -> ProductionState:
@@ -27,12 +34,14 @@ def screenwriter_node(state: ProductionState) -> ProductionState:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Role: You are the Screenwriter.
-Task: Convert a simple idea into a structured scenario with characters and dialogue.
+Task: Convert a simple idea into a structured scenario with characters, props, background descriptions, and dialogue.
 
 Rules:
 1. Create 1 to 3 characters.
 2. Define their visual appearance clearly.
-3. Write a short sequence of dialogue and actions."""),
+3. Define the main background/environment visually.
+4. Define 1 to 3 key props (objects) used in the scene.
+5. Write a short sequence of dialogue and actions."""),
         ("user", "Prompt: {user_prompt}")
     ])
 
