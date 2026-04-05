@@ -40,7 +40,7 @@ class GodotRunner:
             json.dump(contract_data, f, indent=4)
         print(f"GodotRunner: Contract injected into {self.contract_file}")
 
-    def run_scene(self, dump_frame: bool = True) -> bool:
+    def run_scene(self, dump_frame: bool = True, duration: float = 2.0) -> bool:
         """Runs Godot in headless mode.
         If dump_frame is True, captures a single screenshot.
         If dump_frame is False, exports a video via --write-movie.
@@ -63,7 +63,8 @@ class GodotRunner:
                 "--write-movie", str(self.output_video.absolute()),
                 "--fixed-fps", str(fps),
                 "--",
-                "--render-video"
+                "--render-video",
+                "--duration", str(duration)
             ]
 
         # Add a fallback for linux headless rendering if pure headless fails in some environments
@@ -155,7 +156,7 @@ class GodotRunner:
         elif self.debug:
             print(f"GodotRunner: Debug mode active. Workspace retained at {self.temp_path}")
 
-    def execute_pipeline(self, contract_data: Dict[str, Any], output_path: str = "latest_dailies.png", mode: str = "frame") -> Optional[str]:
+    def execute_pipeline(self, contract_data: Dict[str, Any], output_path: str = "latest_dailies.png", mode: str = "frame", duration: float = 2.0) -> Optional[str]:
         """Full execution lifecycle. mode can be 'frame' or 'video'."""
         result_path = None
         try:
@@ -163,11 +164,11 @@ class GodotRunner:
             self.inject_contract(contract_data)
 
             if mode == "video":
-                success = self.run_scene(dump_frame=False)
+                success = self.run_scene(dump_frame=False, duration=duration)
                 if success:
                     result_path = self.retrieve_video(output_path)
             else:
-                success = self.run_scene(dump_frame=True)
+                success = self.run_scene(dump_frame=True, duration=duration)
                 if success:
                     result_path = self.retrieve_dailies(output_path)
         finally:

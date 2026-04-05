@@ -59,9 +59,10 @@ def get_vision_llm(temperature: float = 0.2) -> BaseChatModel:
         )
     elif llm_provider == "qwen":
         from langchain_community.chat_models.tongyi import ChatTongyi
+        # DashScope deprecated Qwen2-VL, current stable vision model is qwen-vl-max or qwen-vl-plus
         return ChatTongyi(
             dashscope_api_key=os.environ.get("DASHSCOPE_API_KEY"),
-            model=os.environ.get("QWEN_VISION_MODEL", "qwen-vl-plus"),
+            model=os.environ.get("QWEN_VISION_MODEL", "qwen-vl-max"),
             temperature=temperature
         )
     else:

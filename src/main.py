@@ -19,6 +19,9 @@ def render_bridge_node(state: ProductionState) -> ProductionState:
     """Executes the Godot build and render for a dailies frame."""
     print("🎬 Render Bridge: Initiating digital production (Dailies)...")
 
+    current_shot = state.get("shots", [{}])[state.get("current_shot_index", 0)]
+    duration = current_shot.get("duration", 2.0)
+
     contract_data = {
         "set_design": state.get("set_design", {}),
         "lighting": state.get("lighting", {}),
@@ -29,7 +32,7 @@ def render_bridge_node(state: ProductionState) -> ProductionState:
     runner = GodotRunner(debug=True)
     unique_filename = f"dailies_shot_{state.get('current_shot_index', 0)}_retake_{state.get('retake_count', 0)}_{uuid.uuid4().hex[:6]}.png"
 
-    dailies_path = runner.execute_pipeline(contract_data, output_path=unique_filename, mode="frame")
+    dailies_path = runner.execute_pipeline(contract_data, output_path=unique_filename, mode="frame", duration=duration)
 
     if dailies_path:
         state["latest_dailies_path"] = dailies_path
@@ -43,6 +46,9 @@ def final_video_render_node(state: ProductionState) -> ProductionState:
     """Executes the Godot movie writer after passing the audit."""
     print("🎞️ Render Bridge: Auditor passed. Rendering final video sequence...")
 
+    current_shot = state.get("shots", [{}])[state.get("current_shot_index", 0)]
+    duration = current_shot.get("duration", 5.0)
+
     contract_data = {
         "set_design": state.get("set_design", {}),
         "lighting": state.get("lighting", {}),
@@ -53,7 +59,7 @@ def final_video_render_node(state: ProductionState) -> ProductionState:
     runner = GodotRunner(debug=True)
     video_filename = f"final_shot_{state.get('current_shot_index', 0)}_{uuid.uuid4().hex[:6]}.mp4"
 
-    video_path = runner.execute_pipeline(contract_data, output_path=video_filename, mode="video")
+    video_path = runner.execute_pipeline(contract_data, output_path=video_filename, mode="video", duration=duration)
     if video_path:
         print(f"✅ Final video rendered: {video_path}")
     else:

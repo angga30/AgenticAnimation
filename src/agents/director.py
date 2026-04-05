@@ -29,14 +29,14 @@ def director_node(state: ProductionState) -> ProductionState:
 Task: Convert a screenplay scenario into a "Director's Treatment" and a technical Shot List.
 
 Responsibilities:
-1. Break down the scenario into 1-3 distinct shots based on the dialogue and actions.
+1. Break down the scenario into 3-6 distinct shots based on the dialogue and actions, ensuring the total sequence adds up to 30 to 60 seconds.
 2. For each shot, define the mood, duration, and key action.
 3. Coordinate the production by assigning specific themes to the Cinematographer and Gaffer.
 4. Ensure you use the exact character IDs provided in the scenario.
 
 Constraints:
 - No conversational filler.
-- Maximum duration per shot: 10 seconds."""),
+- Duration per shot should be between 5 to 15 seconds."""),
         ("user", "Scenario: {scenario}")
     ])
 

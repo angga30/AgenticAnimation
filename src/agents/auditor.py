@@ -62,8 +62,8 @@ If you see major issues, output RETAKE with specific instructions. If it looks a
                 print("👁️ Auditor: Max retakes reached. Forcing VALID status.")
                 state["audit_result"]["status"] = "VALID"
     except Exception as e:
-        print(f"👁️ Auditor Vision Error (maybe provider doesn't support vision?): {e}")
-        # Fallback to VALID if Vision LLM fails
+        print(f"👁️ Auditor Vision Error (missing or unsupported model): {e}")
+        # Fallback to VALID if Vision LLM fails so the pipeline doesn't get blocked
         state["audit_result"] = {"status": "VALID", "issues": [], "instructions": ""}
 
     return state

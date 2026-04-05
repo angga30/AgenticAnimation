@@ -8,6 +8,7 @@ func _ready() -> void:
 	var args = OS.get_cmdline_user_args()
 	var mode = "frame" # default
 	var output_path = "res://dailies.png"
+	var render_duration = 2.0
 
 	for i in range(args.size()):
 		if args[i] == "--dump-frame" and i + 1 < args.size():
@@ -15,6 +16,8 @@ func _ready() -> void:
 			output_path = args[i+1]
 		elif args[i] == "--render-video":
 			mode = "video"
+		elif args[i] == "--duration" and i + 1 < args.size():
+			render_duration = float(args[i+1])
 
 	var file_path = "res://contract.json"
 	if not FileAccess.file_exists(file_path):
@@ -44,8 +47,9 @@ func _ready() -> void:
 		print("Godot: Render frame finished.")
 		get_tree().quit(0)
 	elif mode == "video":
-		# Simulating animation time, for example 2 seconds
-		await get_tree().create_timer(2.0).timeout
+		# Simulating animation time matching the shot duration
+		print("Godot: Recording video for duration: ", render_duration, "s")
+		await get_tree().create_timer(render_duration).timeout
 		print("Godot: Render video sequence finished.")
 		get_tree().quit(0)
 
@@ -176,22 +180,26 @@ func _build_camera(cam_data: Dictionary) -> void:
 	var movement = cam_data.get("movement", {})
 	if not movement.is_empty():
 		var type = movement.get("type", "")
-		var tween = get_tree().create_tween()
 		var speed = movement.get("speed", 2.0)
-		if type == "dolly":
+		var has_tweens = false
+		var tween = get_tree().create_tween()
+
+		if type == "dolly" or type.begins_with("dolly"):
 			var forward = -camera.global_transform.basis.z
 			var dest = camera.position + forward * 2.0
 			tween.tween_property(camera, "position", dest, speed)
-		elif type == "pan":
+			has_tweens = true
+		elif type == "pan" or type.begins_with("pan"):
 			var target_rot = camera.rotation + Vector3(0, deg_to_rad(30), 0)
 			tween.tween_property(camera, "rotation", target_rot, speed)
-		elif type == "orbit":
+			has_tweens = true
+		elif type == "orbit" or type.begins_with("orbit"):
 			var angle_rad = deg_to_rad(movement.get("angle_deg", 30.0))
 			var radius = movement.get("radius", 2.0)
 
 			var cam_offset = camera.position - target_vec
 			var current_radius = cam_offset.length()
-			# Normalizing offset ignores Y-difference loosely, but simple orbit implementation:
+			if current_radius < 0.1: current_radius = radius
 			var dest_pos = target_vec + cam_offset.rotated(Vector3.UP, angle_rad).normalized() * current_radius
 			tween.tween_property(camera, "position", dest_pos, speed)
 
@@ -200,6 +208,10 @@ func _build_camera(cam_data: Dictionary) -> void:
 			dummy_cam.look_at_from_position(dest_pos, target_vec)
 			tween.parallel().tween_property(camera, "rotation", dummy_cam.rotation, speed)
 			dummy_cam.queue_free()
+			has_tweens = true
+
+		if not has_tweens:
+			tween.kill()
 
 func _build_performance(perf_data: Dictionary) -> void:
 	if perf_data.is_empty(): return
@@ -223,10 +235,15 @@ func _build_performance(perf_data: Dictionary) -> void:
 	if paths.size() > 0:
 		sprite.position = safe_vector3(paths[0], Vector3.ZERO)
 
-		if paths.size() > 1:
+		var valid_paths = []
+		for i in range(1, paths.size()):
+			var dest = safe_vector3(paths[i], Vector3.ZERO)
+			if sprite.position != dest:
+				valid_paths.append(dest)
+
+		if valid_paths.size() > 0:
 			var tween = get_tree().create_tween()
-			for i in range(1, paths.size()):
-				var dest = safe_vector3(paths[i], Vector3.ZERO)
+			for dest in valid_paths:
 				tween.tween_property(sprite, "position", dest, 1.0)
 	else:
 		sprite.position = Vector3(0, 0, 0)
