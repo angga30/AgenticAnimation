@@ -4,6 +4,18 @@ var config_data: Dictionary
 
 func _ready() -> void:
 	print("Godot: Initializing SceneBuilder...")
+
+	var args = OS.get_cmdline_user_args()
+	var mode = "frame" # default
+	var output_path = "res://dailies.png"
+
+	for i in range(args.size()):
+		if args[i] == "--dump-frame" and i + 1 < args.size():
+			mode = "frame"
+			output_path = args[i+1]
+		elif args[i] == "--render-video":
+			mode = "video"
+
 	var file_path = "res://contract.json"
 	if not FileAccess.file_exists(file_path):
 		printerr("Godot: contract.json not found!")
@@ -25,15 +37,17 @@ func _ready() -> void:
 	_build_performance(config_data.get("performance", {}))
 	_build_camera(config_data.get("camera", {})) # Camera built after to look at actors
 
-	# Wait a bit for physics/rendering to settle before capturing the dailies screenshot
-	await get_tree().create_timer(1.0).timeout
-	_capture_screenshot("res://dailies.png")
-
-	# Simulating animation time, for example 2 seconds
-	await get_tree().create_timer(2.0).timeout
-
-	print("Godot: Render sequence finished.")
-	get_tree().quit(0)
+	if mode == "frame":
+		# Wait a bit for physics/rendering to settle before capturing the dailies screenshot
+		await get_tree().create_timer(1.0).timeout
+		await _capture_screenshot(output_path)
+		print("Godot: Render frame finished.")
+		get_tree().quit(0)
+	elif mode == "video":
+		# Simulating animation time, for example 2 seconds
+		await get_tree().create_timer(2.0).timeout
+		print("Godot: Render video sequence finished.")
+		get_tree().quit(0)
 
 func safe_vector3(array_data: Variant, default_val: Vector3) -> Vector3:
 	if typeof(array_data) == TYPE_ARRAY and array_data.size() >= 3:

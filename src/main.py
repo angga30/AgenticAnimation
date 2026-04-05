@@ -11,10 +11,11 @@ from src.agents import (
     auditor_node
 )
 from src.bridge import GodotRunner
+import uuid
 
 def render_bridge_node(state: ProductionState) -> ProductionState:
-    """Executes the Godot build and render."""
-    print("🎬 Render Bridge: Initiating digital production...")
+    """Executes the Godot build and render for a dailies frame."""
+    print("🎬 Render Bridge: Initiating digital production (Dailies)...")
 
     contract_data = {
         "set_design": state.get("set_design", {}),
@@ -23,19 +24,38 @@ def render_bridge_node(state: ProductionState) -> ProductionState:
         "performance": state.get("performance", {})
     }
 
-    # We set debug=True if we want to see engine logs, or False for clean runs
     runner = GodotRunner(debug=True)
-
-    import uuid
     unique_filename = f"dailies_shot_{state.get('current_shot_index', 0)}_retake_{state.get('retake_count', 0)}_{uuid.uuid4().hex[:6]}.png"
 
-    dailies_path = runner.execute_pipeline(contract_data, output_path=unique_filename)
+    dailies_path = runner.execute_pipeline(contract_data, output_path=unique_filename, mode="frame")
 
     if dailies_path:
         state["latest_dailies_path"] = dailies_path
     else:
         print("⚠️ Render Bridge: Failed to generate dailies!")
         state["latest_dailies_path"] = None
+
+    return state
+
+def final_video_render_node(state: ProductionState) -> ProductionState:
+    """Executes the Godot movie writer after passing the audit."""
+    print("🎞️ Render Bridge: Auditor passed. Rendering final video sequence...")
+
+    contract_data = {
+        "set_design": state.get("set_design", {}),
+        "lighting": state.get("lighting", {}),
+        "camera": state.get("camera", {}),
+        "performance": state.get("performance", {})
+    }
+
+    runner = GodotRunner(debug=True)
+    video_filename = f"final_shot_{state.get('current_shot_index', 0)}_{uuid.uuid4().hex[:6]}.avi"
+
+    video_path = runner.execute_pipeline(contract_data, output_path=video_filename, mode="video")
+    if video_path:
+        print(f"✅ Final video rendered: {video_path}")
+    else:
+        print("⚠️ Render Bridge: Failed to generate final video!")
 
     return state
 
@@ -51,10 +71,10 @@ def should_retake(state: ProductionState) -> str:
             print(f"🔄 Production: Retake requested by Auditor ({retake_count+1}/{MAX_RETAKES}). Rebuilding scene...")
             return "architect"
         else:
-            print("⚠️ Production: Max retakes reached. Failing forward.")
-            return "next_shot_check"
+            print("⚠️ Production: Max retakes reached. Failing forward to final render.")
+            return "final_video_render"
 
-    return "next_shot_check"
+    return "final_video_render"
 
 def next_shot_node(state: ProductionState) -> ProductionState:
     """Updates state to prepare for the next shot in the sequence."""
@@ -89,6 +109,7 @@ def build_production_graph() -> StateGraph:
     workflow.add_node("gaffer", gaffer_node)
     workflow.add_node("render_bridge", render_bridge_node)
     workflow.add_node("auditor", auditor_node)
+    workflow.add_node("final_video_render", final_video_render_node)
     workflow.add_node("next_shot_node", next_shot_node)
 
     # The pipeline is fully sequential for production, then branches at audit
@@ -105,9 +126,11 @@ def build_production_graph() -> StateGraph:
         should_retake,
         {
             "architect": "architect",
-            "next_shot_check": "next_shot_node"
+            "final_video_render": "final_video_render"
         }
     )
+
+    workflow.add_edge("final_video_render", "next_shot_node")
 
     workflow.add_conditional_edges(
         "next_shot_node",

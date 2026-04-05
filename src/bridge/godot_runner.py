@@ -26,6 +26,7 @@ class GodotRunner:
         self.debug = debug
         self.contract_file = self.temp_path / "contract.json"
         self.output_image = self.temp_path / "dailies.png"
+        self.output_video = self.temp_path / "final_render.avi" # Godot natively exports to AVI unless further configured
 
     def setup_workspace(self) -> None:
         """Copies the base project to a temporary directory."""
@@ -38,17 +39,36 @@ class GodotRunner:
             json.dump(contract_data, f, indent=4)
         print(f"GodotRunner: Contract injected into {self.contract_file}")
 
-    def run_scene(self) -> bool:
-        """Runs Godot in headless mode."""
-        # Find the godot executable. In a real system, you might want to specify this via ENV var.
+    def run_scene(self, dump_frame: bool = True) -> bool:
+        """Runs Godot in headless mode.
+        If dump_frame is True, captures a single screenshot.
+        If dump_frame is False, exports a video via --write-movie.
+        """
         godot_exec = os.environ.get("GODOT_EXECUTABLE", "godot")
 
-        # We assume Godot 4.3 command line syntax
-        cmd = [
-            godot_exec,
-            "--headless",
-            "--path", str(self.temp_path.absolute()),
-        ]
+        if dump_frame:
+            cmd = [
+                godot_exec,
+                "--headless",
+                "--path", str(self.temp_path.absolute()),
+                "--",
+                "--dump-frame", str(self.output_image.absolute())
+            ]
+        else:
+            fps = 30
+            cmd = [
+                godot_exec,
+                "--headless",
+                "--path", str(self.temp_path.absolute()),
+                "--write-movie", str(self.output_video.absolute()),
+                "--fixed-fps", str(fps),
+                "--",
+                "--render-video"
+            ]
+
+        # Add a fallback for linux headless rendering if pure headless fails in some environments
+        if sys.platform == "linux" and os.environ.get("USE_XVFB", "0") == "1":
+            cmd = ["xvfb-run", "--auto-servernum"] + cmd
 
         print(f"GodotRunner: Executing {' '.join(cmd)}")
         try:
@@ -79,7 +99,17 @@ class GodotRunner:
             print(f"GodotRunner: Dailies retrieved to {dest_path}")
             return dest_path
         else:
-            print("GodotRunner: No dailies.png found in output.")
+            print("GodotRunner: No dailies found in output.")
+            return None
+
+    def retrieve_video(self, dest_path: str = "latest_render.avi") -> Optional[str]:
+        """Copies the rendered video back to the main directory."""
+        if self.output_video.exists():
+            shutil.copy(self.output_video, dest_path)
+            print(f"GodotRunner: Video retrieved to {dest_path}")
+            return dest_path
+        else:
+            print("GodotRunner: No video found in output.")
             return None
 
     def cleanup(self) -> None:
@@ -90,15 +120,21 @@ class GodotRunner:
         elif self.debug:
             print(f"GodotRunner: Debug mode active. Workspace retained at {self.temp_path}")
 
-    def execute_pipeline(self, contract_data: Dict[str, Any], output_path: str = "latest_dailies.png") -> Optional[str]:
-        """Full execution lifecycle."""
+    def execute_pipeline(self, contract_data: Dict[str, Any], output_path: str = "latest_dailies.png", mode: str = "frame") -> Optional[str]:
+        """Full execution lifecycle. mode can be 'frame' or 'video'."""
         result_path = None
         try:
             self.setup_workspace()
             self.inject_contract(contract_data)
-            success = self.run_scene()
-            if success:
-                result_path = self.retrieve_dailies(output_path)
+
+            if mode == "video":
+                success = self.run_scene(dump_frame=False)
+                if success:
+                    result_path = self.retrieve_video(output_path)
+            else:
+                success = self.run_scene(dump_frame=True)
+                if success:
+                    result_path = self.retrieve_dailies(output_path)
         finally:
             self.cleanup()
         return result_path
