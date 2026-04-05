@@ -36,9 +36,19 @@ class VisualAuditResult(TypedDict):
     issues: List[str]
     instructions: str
 
+class ScenarioData(TypedDict):
+    title: str
+    setting: str
+    characters: List[Dict[str, str]]
+    dialogue: List[Dict[str, str]]
+
 class ProductionState(TypedDict):
     # Inputs
     user_prompt: str
+
+    # Pre-Production Outputs
+    scenario: NotRequired[ScenarioData]
+    generated_assets: NotRequired[Dict[str, str]] # map of actor_id -> filepath
 
     # Director Outputs
     treatment: NotRequired[Treatment]

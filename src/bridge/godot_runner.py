@@ -46,19 +46,18 @@ class GodotRunner:
         """
         godot_exec = os.environ.get("GODOT_EXECUTABLE", "godot")
 
+        # In debug mode, we omit --headless so the user can see the rendering happen in real-time
+        headless_args = ["--headless"] if not self.debug else []
+
         if dump_frame:
-            cmd = [
-                godot_exec,
-                "--headless",
+            cmd = [godot_exec] + headless_args + [
                 "--path", str(self.temp_path.absolute()),
                 "--",
                 "--dump-frame", str(self.output_image.absolute())
             ]
         else:
             fps = 30
-            cmd = [
-                godot_exec,
-                "--headless",
+            cmd = [godot_exec] + headless_args + [
                 "--path", str(self.temp_path.absolute()),
                 "--write-movie", str(self.output_video.absolute()),
                 "--fixed-fps", str(fps),
@@ -67,7 +66,7 @@ class GodotRunner:
             ]
 
         # Add a fallback for linux headless rendering if pure headless fails in some environments
-        if sys.platform == "linux" and os.environ.get("USE_XVFB", "0") == "1":
+        if sys.platform == "linux" and os.environ.get("USE_XVFB", "0") == "1" and not self.debug:
             cmd = ["xvfb-run", "--auto-servernum"] + cmd
 
         print(f"GodotRunner: Executing {' '.join(cmd)}")

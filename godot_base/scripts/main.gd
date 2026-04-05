@@ -175,7 +175,18 @@ func _build_performance(perf_data: Dictionary) -> void:
 	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	sprite.name = perf_data.get("actor_id", "actor_01")
 
-	# Fallback placeholder since we might not have a texture generated
+	var asset_path = perf_data.get("asset_path", "")
+	if asset_path != "" and FileAccess.file_exists(asset_path):
+		var img = Image.new()
+		var err = img.load(asset_path)
+		if err == OK:
+			sprite.texture = ImageTexture.create_from_image(img)
+			print("Godot: Loaded texture for ", sprite.name, " from ", asset_path)
+		else:
+			printerr("Godot Error: Failed to load image at ", asset_path)
+	else:
+		printerr("Godot Error: Asset path empty or missing for ", sprite.name, ": ", asset_path)
+
 	var paths = perf_data.get("path_coords", [])
 	if paths.size() > 0:
 		sprite.position = safe_vector3(paths[0], Vector3.ZERO)

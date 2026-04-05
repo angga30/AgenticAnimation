@@ -6,6 +6,7 @@ from typing import List
 
 class PerformanceOutput(BaseModel):
     actor_id: str
+    asset_path: str = Field(description="Absolute path to the character's image asset", default="")
     animation: str = Field(description="'idle', 'walk', or 'talk'")
     path_coords: List[List[float]] = Field(description="List of [x, y, z] coordinates for movement")
 
@@ -15,7 +16,9 @@ def animator_node(state: ProductionState) -> ProductionState:
 
     current_shot = state["shots"][state.get("current_shot_index", 0)]
     entities = current_shot.get("entities", [])
-    actor_id = entities[0] if entities else "actor_01"
+    actor_id = entities[0] if entities else "char_01"
+
+    asset_path = state.get("generated_assets", {}).get(actor_id, "")
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Role: You are the Lead Animator.
@@ -34,6 +37,9 @@ Characters are 2D Billboards in a 3D world. Ensure they are positioned exactly a
         "duration": current_shot["duration"]
     })
 
-    state["performance"] = result.model_dump()
+    perf_data = result.model_dump()
+    perf_data["asset_path"] = asset_path # Inject the exact path from state to avoid LLM hallucination
+
+    state["performance"] = perf_data
     print(f"🏃 Animator: Defined performance for {actor_id}.")
     return state

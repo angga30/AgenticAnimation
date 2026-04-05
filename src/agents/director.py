@@ -26,24 +26,24 @@ def director_node(state: ProductionState) -> ProductionState:
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Role: You are the Director Agent (The Visionary).
-Task: Convert a raw text prompt into a "Director's Treatment" and a technical Shot List.
+Task: Convert a screenplay scenario into a "Director's Treatment" and a technical Shot List.
 
 Responsibilities:
-1. Break down the narrative into 1-3 distinct shots.
+1. Break down the scenario into 1-3 distinct shots based on the dialogue and actions.
 2. For each shot, define the mood, duration, and key action.
 3. Coordinate the production by assigning specific themes to the Cinematographer and Gaffer.
-4. Ensure all character IDs are consistent across shots.
+4. Ensure you use the exact character IDs provided in the scenario.
 
 Constraints:
 - No conversational filler.
-- If the prompt is abstract, interpret it into a visually clear metaphor.
 - Maximum duration per shot: 10 seconds."""),
-        ("user", "Prompt: {user_prompt}")
+        ("user", "Scenario: {scenario}")
     ])
 
     chain = prompt | structured_llm
 
-    result = chain.invoke({"user_prompt": state["user_prompt"]})
+    scenario_text = str(state.get("scenario", state["user_prompt"]))
+    result = chain.invoke({"scenario": scenario_text})
 
     # Update state
     state["treatment"] = result.treatment.model_dump()

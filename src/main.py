@@ -8,7 +8,9 @@ from src.agents import (
     animator_node,
     cinematographer_node,
     gaffer_node,
-    auditor_node
+    auditor_node,
+    screenwriter_node,
+    asset_generator_node
 )
 from src.bridge import GodotRunner
 import uuid
@@ -102,6 +104,8 @@ def build_production_graph() -> StateGraph:
     workflow = StateGraph(ProductionState)
 
     # Add nodes
+    workflow.add_node("screenwriter", screenwriter_node)
+    workflow.add_node("asset_generator", asset_generator_node)
     workflow.add_node("director", director_node)
     workflow.add_node("architect", architect_node)
     workflow.add_node("animator", animator_node)
@@ -113,6 +117,8 @@ def build_production_graph() -> StateGraph:
     workflow.add_node("next_shot_node", next_shot_node)
 
     # The pipeline is fully sequential for production, then branches at audit
+    workflow.add_edge("screenwriter", "asset_generator")
+    workflow.add_edge("asset_generator", "director")
     workflow.add_edge("director", "architect")
     workflow.add_edge("architect", "animator")
     workflow.add_edge("animator", "cinematographer")
@@ -142,7 +148,7 @@ def build_production_graph() -> StateGraph:
     )
 
     # Set Entry Point
-    workflow.set_entry_point("director")
+    workflow.set_entry_point("screenwriter")
 
     return workflow.compile()
 
