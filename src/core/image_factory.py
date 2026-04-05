@@ -37,6 +37,34 @@ def _fallback_generate_placeholder(asset_id: str, is_bg: bool) -> bytes:
     img.save(buf, format="PNG")
     return buf.getvalue()
 
+def _generate_qwen(prompt: str) -> bytes:
+    """Generates an image using Alibaba's DashScope (Qwen ImageSynthesis)."""
+    import dashscope
+    from dashscope import ImageSynthesis
+
+    api_key = os.environ.get("DASHSCOPE_API_KEY")
+    if not api_key:
+        raise ValueError("DASHSCOPE_API_KEY is not set.")
+
+    dashscope.api_key = api_key
+    model = os.environ.get("QWEN_IMAGE_MODEL", ImageSynthesis.Models.wanx_v1)
+
+    response = ImageSynthesis.call(
+        model=model,
+        prompt=prompt,
+        n=1,
+        size='1024*1024'
+    )
+
+    if response.status_code == 200:
+        if response.output.results and len(response.output.results) > 0:
+            url = response.output.results[0].url
+            return requests.get(url).content
+        else:
+            raise ValueError("Qwen Image API returned empty results.")
+    else:
+        raise ValueError(f"Qwen Image API Error: {response.code} - {response.message}")
+
 def _generate_openai(prompt: str) -> bytes:
     from openai import OpenAI
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -102,7 +130,7 @@ def _generate_custom_rest(prompt: str) -> bytes:
 def generate_image_bytes(prompt: str, asset_id: str, is_bg: bool) -> bytes:
     """
     Agnostic image generation factory.
-    Reads IMAGE_PROVIDER environment variable ('openai', 'google', 'custom', 'fallback').
+    Reads IMAGE_PROVIDER environment variable ('openai', 'google', 'qwen', 'custom', 'banana', 'fallback').
     Default is 'openai'. If a provider fails, falls back to placeholder shapes automatically.
     """
     provider = os.environ.get("IMAGE_PROVIDER", "openai").lower()
@@ -112,7 +140,9 @@ def generate_image_bytes(prompt: str, asset_id: str, is_bg: bool) -> bytes:
             return _generate_openai(prompt)
         elif provider == "google":
             return _generate_google(prompt)
-        elif provider == "custom":
+        elif provider == "qwen":
+            return _generate_qwen(prompt)
+        elif provider in ["custom", "banana"]:
             return _generate_custom_rest(prompt)
         elif provider == "fallback":
             return _fallback_generate_placeholder(asset_id, is_bg)
