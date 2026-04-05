@@ -13,6 +13,9 @@ class TestBasicImports(unittest.TestCase):
         import src.core.llm_factory
         self.assertIsNotNone(src.core.llm_factory.get_llm)
 
+        import src.core.image_factory
+        self.assertIsNotNone(src.core.image_factory.generate_image_bytes)
+
     def test_state_creation(self):
         state = ProductionState(user_prompt="Hello world", retake_count=0)
         self.assertEqual(state["user_prompt"], "Hello world")
