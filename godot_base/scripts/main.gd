@@ -100,6 +100,8 @@ func _build_lighting(light_data: Dictionary) -> void:
 		d_light.position = Vector3(0, 10, 0)
 
 		# Prevent looking straight down which can cause issues with up vector, or handle it
+		add_child(d_light)
+
 		var dir_vec = Vector3(direction[0], direction[1], direction[2]).normalized()
 		if dir_vec != Vector3.ZERO:
 			if abs(dir_vec.y) > 0.999:
@@ -111,7 +113,6 @@ func _build_lighting(light_data: Dictionary) -> void:
 		if dir_data.has("color"):
 			d_light.light_color = Color(dir_data.get("color"))
 		d_light.shadow_enabled = true
-		add_child(d_light)
 
 func _build_camera(cam_data: Dictionary) -> void:
 	if cam_data.is_empty(): return
@@ -177,9 +178,16 @@ func _build_performance(perf_data: Dictionary) -> void:
 	add_child(sprite)
 
 func _capture_screenshot(path: String) -> void:
+	await RenderingServer.frame_post_draw
 	var viewport = get_viewport()
 	if viewport:
-		var image = viewport.get_texture().get_image()
-		if image:
-			image.save_png(path)
-			print("Godot: Saved dailies screenshot to ", path)
+		var texture = viewport.get_texture()
+		if texture:
+			var image = texture.get_image()
+			if image and not image.is_empty():
+				image.save_png(path)
+				print("Godot: Saved dailies screenshot to ", path)
+			else:
+				printerr("Godot Error: Image is null or empty. Ensure GPU rendering is available.")
+		else:
+			printerr("Godot Error: Texture is null.")
